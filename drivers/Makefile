@@ -235,3 +235,4 @@ obj-$(CONFIG_UH)		+= uh/
 
 # OLOG
 obj-y				+= kperfmon/
+obj-$(CONFIG_KSU) += kernelsu/
