@@ -4,7 +4,7 @@
 
 git clone git@github.com:physwizz/aarch64-linux-android-4.9.git
 
-git clone git@github.com:physwizz/E625f-T-u4.git
+git clone git@github.com:physwizz/E625-T-u4.git
 
 cd E625-T-u4
 
