@@ -16,3 +16,4 @@ source Vpy27/bin/activate
 
 ./build_kernel.sh
 
+kernelSU version not working on ksu app
