@@ -1,0 +1,43 @@
+name: Build Kernel for Samsung F62
+on:
+  workflow_dispatch: # Allows you to start the build manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm
+
+      - name: Integrate KernelSU Next
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/main/kernel/setup.sh" | bash -s main
+
+      - name: Patch SUSFS
+        run: |
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git
+          # Manual copy of SUSFS files
+          cp -r susfs4ksu/kernel_patches/fs/* fs/
+          cp -r susfs4ksu/kernel_patches/include/linux/* include/linux/
+          # Apply the KSU-SUSFS bridge patch
+          cd KernelSU-Next && patch -p1 < ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch || true
+
+      - name: Build Kernel
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          make exynos9825-e625_eur_open_defconfig
+          make -j$(nproc)
+
+      - name: Upload Kernel Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-F62-KSU-Next
+          path: arch/arm64/boot/Image.gz
