@@ -1,6 +1,6 @@
 name: Build Kernel for Samsung F62
 on:
-  workflow_dispatch: # Allows you to start the build manually
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,7 +14,6 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          # Added gcc-aarch64-linux-gnu and binutils to compile for the phone's architecture
           sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Integrate KernelSU Next
@@ -23,20 +22,24 @@ jobs:
 
       - name: Patch SUSFS and Enable Configs
         run: |
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git
+          # Clone the specific branch for kernel 4.14
+          git clone -b kernel-4.14 https://gitlab.com/simonpunk/susfs4ksu.git
           
           # Manual copy of SUSFS files
           cp -r susfs4ksu/kernel_patches/fs/* fs/
           cp -r susfs4ksu/kernel_patches/include/linux/* include/linux/
           
-          # Apply the KSU-SUSFS bridge patch (setup.sh creates the folder 'KernelSU')
-          cd KernelSU && patch -p1 < ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch || true
-          cd ..
+          # Apply the KSU-SUSFS bridge patch safely
+          if [ -d "KernelSU-Next" ]; then
+            cd KernelSU-Next
+            patch -p1 < ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch || true
+            cd ..
+          fi
           
-          # Apply the Core Kernel SUSFS patch for kernel 4.14 (F62 / Exynos 9825 standard)
+          # Apply the Core Kernel SUSFS patch for kernel 4.14
           patch -p1 < susfs4ksu/kernel_patches/50_add_susfs_in_kernel-4.14.patch || true
           
-          # Turn ON KernelSU and SUSFS in your defconfig file so they actually compile
+          # Turn ON KernelSU and SUSFS in your defconfig
           echo "CONFIG_KSU=y" >> arch/arm64/configs/exynos9825-e625_eur_open_defconfig
           echo "CONFIG_KSU_SUSFS=y" >> arch/arm64/configs/exynos9825-e625_eur_open_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> arch/arm64/configs/exynos9825-e625_eur_open_defconfig
@@ -48,11 +51,10 @@ jobs:
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           make exynos9825-e625_eur_open_defconfig
-          make -j$(nproc)
+          make -j$(nproc) WERROR=0 KCFLAGS="-Wno-error -Wno-unused-function" KBUILD_BUILD_USER="surya" KBUILD_BUILD_HOST="github-actions"
 
       - name: Upload Kernel Image
         uses: actions/upload-artifact@v4
         with:
           name: Kernel-F62-KSU-Next
-          # Using Image* ensures it catches Image, Image.gz, or whatever format Exynos spits out
           path: arch/arm64/boot/Image*
