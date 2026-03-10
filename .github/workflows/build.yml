@@ -50,7 +50,7 @@ jobs:
         run: |
           # Passing the variables directly into the 'make' commands forces it to override Grahame's hardcoded paths
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- exynos9825-e625_eur_open_defconfig
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) WERROR=0 KCFLAGS="-Wno-error -Wno-unused-function" KBUILD_BUILD_USER="surya" KBUILD_BUILD_HOST="github-actions"
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) WERROR=0 KCFLAGS="-Wno-error -Wno-unused-function -Wno-implicit-function-declaration" KBUILD_BUILD_USER="surya" KBUILD_BUILD_HOST="github-actions"
 
       - name: Upload Kernel Image
         uses: actions/upload-artifact@v4
