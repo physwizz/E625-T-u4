@@ -46,9 +46,32 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> arch/arm64/configs/exynos9825-e625_eur_open_defconfig
           echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> arch/arm64/configs/exynos9825-e625_eur_open_defconfig
 
+      - name: Fix Linker Errors (Stubs)
+        run: |
+          # Create a fake C file with empty dummy functions to trick the linker
+          cat << 'EOF' > kernel/samsung_stubs.c
+          void dbg_snapshot_save_log(void) {}
+          void adv_tracer_arraydump(void) {}
+          int exynos_cpuhp_last_cpu(void) { return 0; }
+          void dbg_snapshot_print_notifier_call(void) {}
+          void init_ems(void) {}
+          void frt_disable_cpufreq(void) {}
+          void rtc_time64_to_tm(void) {}
+          void restore_pcpu_tick(void) {}
+          void save_pcpu_tick(void) {}
+          int gpexbe_dmabuf_is_cached(void) { return 0; }
+          void gpexbe_debug_init(void) {}
+          void gpexbe_debug_term(void) {}
+          void gpexbe_notifier_internal_add(void) {}
+          void gpexbe_notifier_internal_remove(void) {}
+          int lcd_is_on(void) { return 1; }
+          EOF
+          # Tell the kernel to compile our fake file alongside everything else
+          echo "obj-y += samsung_stubs.o" >> kernel/Makefile
+
       - name: Build Kernel
         run: |
-          # Overriding paths, disabling strict warnings, and injecting the missing F2FS magic number
+          # Passing the variables directly into the 'make' commands forces it to override Grahame's hardcoded paths
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- exynos9825-e625_eur_open_defconfig
           make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc) WERROR=0 KCFLAGS="-Wno-error -Wno-unused-function -Wno-implicit-function-declaration -DF2FS_SUPER_MAGIC=0xF2F52010" KBUILD_BUILD_USER="surya" KBUILD_BUILD_HOST="github-actions"
 
